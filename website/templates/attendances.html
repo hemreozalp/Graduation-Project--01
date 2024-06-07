@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendances</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .button-bg {
+        background: #190087;
+      }
+      .button-bg:hover {
+        background-color: #150073;
+      }
+      .button-active {
+        background-color: #3e00b3;
+      }
+      .modal {
+        display: none; /* Gizli olacak */
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0, 0, 0);
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+      }
+      .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        border: 1px solid #888;
+        width: 30%;
+        border-radius: 20px;
+      }
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        position: relative;
+        top: -2px;
+        right: 5px;
+      }
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .message-success {
+        color: green;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      .message-error {
+        color: red;
+        background-color: #ffcccc;
+        border-color: #f5c6cb;
+        padding: 10px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body class="">
+    <div class="flex flex-col justify-stretch h-full w-full my-6 md:mb-0 gap-6">
+      <form
+        id="filter_attendance_form"
+        action="{{ url_for('auth.filter_attendances') }}"
+        method="POST"
+        class="mt-4"
+      >
+        <label for="course_id" class="block mb-2">Course ID:</label>
+        <input
+          type="text"
+          id="course_id"
+          name="course_id"
+          class="w-full p-2 border border-gray-300 rounded mb-2 input-field"
+        />
+
+        <label for="attandancedate" class="block mb-2">Attendance Date:</label>
+        <input
+          type="date"
+          id="attandancedate"
+          name="attandancedate"
+          class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
+        />
+
+        <button
+          id="filterButton"
+          class="button-bg text-white font-bold py-3 px-6 mt-4 rounded-lg"
+        >
+          Filter Attendances
+        </button>
+      </form>
+      <div id="attendance_results" class="mt-4"></div>
+    </div>
+    <script>
+      document
+        .getElementById("filter_attendance_form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
+          var form = event.target;
+          var formData = new FormData(form);
+
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              var resultsDiv = document.getElementById("attendance_results");
+              if (data.success) {
+                var html =
+                  '<table class="min-w-full bg-white border border-gray-300"><thead><tr><th class="py-2 px-4 border-b">Attendance ID</th><th class="py-2 px-4 border-b">Course ID</th><th class="py-2 px-4 border-b">Student ID</th><th class="py-2 px-4 border-b">Attendance Date</th></tr></thead><tbody>';
+                data.attendances.forEach(function (attendance) {
+                  html +=
+                    '<tr><td class="py-2 px-4 border-b">' +
+                    attendance.attandanceid +
+                    '</td><td class="py-2 px-4 border-b">' +
+                    attendance.courseid +
+                    '</td><td class="py-2 px-4 border-b">' +
+                    attendance.studentid +
+                    '</td><td class="py-2 px-4 border-b">' +
+                    attendance.attandancedate +
+                    "</td></tr>";
+                });
+                html += "</tbody></table>";
+                resultsDiv.innerHTML = html;
+              } else {
+                resultsDiv.innerHTML =
+                  '<p class="message-error">' + data.message + "</p>";
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              var resultsDiv = document.getElementById("attendance_results");
+              resultsDiv.innerHTML =
+                '<p class="message-error">An unexpected error occurred.</p>';
+            });
+        });
+    </script>
+  </body>
+</html>

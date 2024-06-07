@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Login</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .custom-background {
+        background: linear-gradient(
+          to left,
+          #6356c7,
+          #6b00d7,
+          #3e00b3,
+          #190087,
+          #150073
+        );
+      }
+      .button-bg {
+        background: #190087;
+      }
+      .button-bg:hover {
+        background-color: #150073;
+      }
+      .button-active {
+        background-color: #3e00b3;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex flex-col h-screen">
+    <div
+      class="flex flex-row justify-between items-center custom-background p-6"
+    >
+      <div class="">
+        <div class="text-white text-2xl font-bold">ClassCheck</div>
+        <div class="text-white">Teacher</div>
+      </div>
+      <div>
+        <button class="mr-5">
+          <img src="{{ url_for('static', filename='images/gear.png') }}" />
+        </button>
+        <button>
+          <img src="{{ url_for('static', filename='images/logout.png') }}" />
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-row">
+      <div
+        class="flex flex-col justify-center h-full bg-white md:w-1/4 w-1/3 shadow-lg rounded-lg px-6 my-6 mx-6 md:mb-0 gap-6"
+      >
+        <button
+          class="button-bg text-white font-bold py-3 px-6 rounded-lg"
+          onclick="changeButtonColor(this)"
+        >
+          Start Class
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+        >
+          Finish Class
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+        >
+          Class Hours
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+        >
+          Attendances
+        </button>
+      </div>
+      <div
+        class="flex justify-center items-center h-full w-full bg-white shadow-lg rounded-lg p-6 my-6 mr-6 md:mb-0"
+      >
+        <table class="min-w-full bg-white border border-gray-300">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 border-b">ID</th>
+              <th class="py-2 px-4 border-b">Name</th>
+              <th class="py-2 px-4 border-b">Surname</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+            <tr>
+              <td class="py-2 px-4 border-b">{{ student.id }}</td>
+              <td class="py-2 px-4 border-b">{{ student.student_name }}</td>
+              <td class="py-2 px-4 border-b">{{ student.student_surname }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      function changeButtonColor(button) {
+        button.classList.toggle("button-active");
+      }
+
+      function toggleAttendance(button) {
+        if (button.textContent === "Present") {
+          button.textContent = "Absent";
+          button.classList.add("bg-red-500");
+          button.classList.remove("bg-green-500");
+        } else {
+          button.textContent = "Present";
+          button.classList.add("bg-green-500");
+          button.classList.remove("bg-red-500");
+        }
+      }
+    </script>
+  </body>
+</html>

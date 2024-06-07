@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authorized Login</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      .custom-background {
+        background: linear-gradient(
+          to left,
+          #6356c7,
+          #6b00d7,
+          #3e00b3,
+          #190087,
+          #150073
+        );
+      }
+      .button-bg {
+        background: #190087;
+      }
+      .button-bg:hover {
+        background-color: #150073;
+      }
+      .button-active {
+        background-color: #3e00b3;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex flex-col h-screen">
+    <div
+      class="flex flex-row justify-between items-center custom-background p-6"
+    >
+      <div class="">
+        <div class="text-white text-2xl font-bold">ClassCheck</div>
+        <div class="text-white">Authorized</div>
+      </div>
+      <div>
+        <button class="mr-5">
+          <img src="{{ url_for('static', filename='images/gear.png') }}" />
+        </button>
+        <button>
+          <img src="{{ url_for('static', filename='images/logout.png') }}" />
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-row">
+      <div
+        class="flex flex-col justify-center h-full bg-white md:w-1/4 w-1/3 shadow-lg rounded-lg px-6 my-6 mx-6 md:mb-0 gap-6"
+      >
+        <div id="message_div"></div>
+        <button
+          class="button-bg text-white font-bold py-3 px-6 rounded-lg"
+          onclick="loadContent('/add_teacher')"
+        >
+          Add Teacher
+        </button>
+        <button
+          class="button-bg text-white font-bold py-3 px-6 rounded-lg"
+          onclick="loadContent('/add_student')"
+        >
+          Add/Remove Student
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          onclick="loadContent('/add_course')"
+        >
+          Add/Remove Course
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+        >
+          Student/Teacher Class List
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          onclick="loadContent('/attendances')"
+        >
+          Attendances
+        </button>
+      </div>
+
+      <div
+        id="content"
+        class="flex justify-center items-center h-full w-full bg-white shadow-lg rounded-lg p-6 my-6 mr-6 md:mb-0"
+      ></div>
+    </div>
+
+    <script>
+      function changeButtonColor(button) {
+        button.classList.toggle("button-active");
+      }
+
+      function loadContent(url) {
+        $.get(url, function (data) {
+          $("#content").html(data);
+        });
+      }
+
+      document
+        .getElementById("add_teacher_form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
+          var form = event.target;
+          var formData = new FormData(form);
+
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              var messageDiv = document.getElementById("message_div");
+              if (data.status === "success") {
+                messageDiv.innerHTML =
+                  '<p style="color: green;">' + data.message + "</p>";
+              } else if (data.status === "error") {
+                messageDiv.innerHTML =
+                  '<p style="color: red;">' + data.message + "</p>";
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        });
+    </script>
+  </body>
+</html>
