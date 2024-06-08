@@ -30,6 +30,19 @@
       .button-active {
         background-color: #3e00b3;
       }
+      .language-selector {
+        display: none;
+        position: absolute;
+        top: 60px;
+        right: 20px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+      }
+      .language-selector select {
+        width: 100%;
+      }
     </style>
   </head>
   <body class="bg-gray-100 flex flex-col h-screen">
@@ -37,17 +50,26 @@
       class="flex flex-row justify-between items-center custom-background p-6"
     >
       <div class="">
-        <div class="text-white text-2xl font-bold">ClassCheck</div>
-        <div class="text-white">Authorized</div>
+        <div class="text-white text-2xl font-bold" data-key="welcome">
+          ClassCheck
+        </div>
+        <div class="text-white" data-key="description">Authorized</div>
       </div>
       <div>
-        <button class="mr-5">
+        <button id="gear-button" class="mr-5">
           <img src="{{ url_for('static', filename='images/gear.png') }}" />
         </button>
         <button>
           <img src="{{ url_for('static', filename='images/logout.png') }}" />
         </button>
       </div>
+    </div>
+    <div id="language-selector" class="language-selector">
+      <label for="language-select">Choose a language:</label>
+      <select id="language-select">
+        <option value="en">English</option>
+        <option value="tr">Türkçe</option>
+      </select>
     </div>
     <div class="flex flex-row">
       <div
@@ -57,31 +79,42 @@
         <button
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
           onclick="loadContent('/add_teacher')"
+          data-key="addRemoveTeacher"
         >
           Add Teacher
         </button>
         <button
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
           onclick="loadContent('/add_student')"
+          data-key="addRemoveStudent"
         >
           Add/Remove Student
         </button>
         <button
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
           onclick="loadContent('/add_course')"
+          data-key="addRemoveClass"
         >
           Add/Remove Course
         </button>
         <button
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          data-key="classList"
         >
           Student/Teacher Class List
         </button>
         <button
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
           onclick="loadContent('/attendances')"
+          data-key="attendances"
         >
           Attendances
+        </button>
+        <button
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          data-key="bulkDataTransfer"
+        >
+          Bulk Data Transfer
         </button>
       </div>
 
@@ -101,6 +134,51 @@
           $("#content").html(data);
         });
       }
+
+      function toggleLanguageSelector() {
+        $("#language-selector").toggle();
+      }
+
+      function changeLanguage(language) {
+        const translations = {
+          en: {
+            welcome: "ClassCheck",
+            description: "Authorized",
+            addRemoveStudent: "Add/Remove Student",
+            addRemoveTeacher: "Add/Remove Teacher",
+            classList: "Student/Teacher Class List",
+            addRemoveClass: "Add/Remove Class",
+            attendances: "Attendances",
+            bulkDataTransfer: "Bulk Data Transfer",
+          },
+          tr: {
+            welcome: "ClassCheck",
+            description: "Yetkili",
+            addRemoveStudent: "Öğrenci Ekle/Çıkar",
+            addRemoveTeacher: "Öğretmen Ekle/Çıkar",
+            classList: "Öğrenci/Öğretmen Sınıf Listesi",
+            addRemoveClass: "Sınıf Ekle/Çıkar",
+            attendances: "Yoklamalar",
+            bulkDataTransfer: "Toplu Veri Transferi",
+          },
+        };
+
+        $("[data-key]").each(function () {
+          const key = $(this).data("key");
+          $(this).text(translations[language][key]);
+        });
+      }
+
+      $(document).ready(function () {
+        $("#gear-button").click(function () {
+          toggleLanguageSelector();
+        });
+
+        $("#language-select").change(function () {
+          const selectedLanguage = $(this).val();
+          changeLanguage(selectedLanguage);
+        });
+      });
 
       document
         .getElementById("add_teacher_form")
