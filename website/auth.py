@@ -1,6 +1,5 @@
 import mysql.connector
 from flask import Blueprint, request, redirect, url_for, render_template, jsonify, session, flash
-import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
 auth = Blueprint('auth', __name__)
@@ -21,14 +20,25 @@ def login():
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
+    # Öğretmen tablosundan kullanıcı kontrolü
     cursor.execute("SELECT * FROM teachers WHERE teacher_email=%s", (email,))
     teacher = cursor.fetchone()
-
+    
     if teacher and check_password_hash(teacher['teacher_password'], password):
         session['teacher_id'] = teacher['teacher_id']
         return redirect(url_for('views.teacher_login'))
-    else:
-        return render_template('login.html', invalid_login=True)
+    
+    # Yetkili kullanıcı kontrolü (Düz metin parola kontrolü)
+    cursor.execute("SELECT * FROM authorized WHERE authorized_email=%s", (email,))
+    authorized_user = cursor.fetchone()
+    
+    if authorized_user and authorized_user['authorized_password'] == password:
+        session['authorized_id'] = authorized_user['authorized_id']
+        return redirect(url_for('views.authorized_login'))
+    
+    # Kullanıcı bulunamazsa hata mesajı göster
+    return render_template('login.html', invalid_login=True)
 
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():

@@ -42,7 +42,7 @@
         <button class="mr-5">
           <img src="{{ url_for('static', filename='images/gear.png') }}" />
         </button>
-        <button>
+        <button id="logoutButton">
           <img src="{{ url_for('static', filename='images/logout.png') }}" />
         </button>
       </div>
@@ -128,6 +128,11 @@
             }
           });
       }
+      document
+        .getElementById("logoutButton")
+        .addEventListener("click", function () {
+          window.location.href = "{{ url_for('auth.logout') }}";
+        });
     </script>
   </body>
 </html>

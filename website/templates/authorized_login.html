@@ -79,7 +79,7 @@
         <button
           id="btn-teacher"
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
-          onclick="toggleContent('{{ url_for('views.add_teacher') }}')"
+          onclick="loadContent('/add_teacher')"
           data-key="addRemoveTeacher"
         >
           Add/Remove Teacher
@@ -87,7 +87,7 @@
         <button
           id="btn-student"
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
-          onclick="toggleContent('{{ url_for('views.add_student') }}')"
+          onclick="loadContent('/add_student')"
           data-key="addRemoveStudent"
         >
           Add/Remove Student
@@ -95,7 +95,7 @@
         <button
           id="btn-course"
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
-          onclick="toggleContent('{{ url_for('views.add_course') }}')"
+          onclick="loadContent('/add_course')"
           data-key="addRemoveClass"
         >
           Add/Remove Course
@@ -103,7 +103,7 @@
         <button
           id="btn-attendances"
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
-          onclick="toggleContent('{{ url_for('views.attendances') }}')"
+          onclick="loadContent('/attendances')"
           data-key="attendances"
         >
           Attendances
@@ -129,6 +129,38 @@
     </div>
 
     <script>
+      function loadContent(url) {
+        $.get(url, function (data) {
+          $("#content").html(data);
+        });
+      }
+
+      document
+        .getElementById("add_teacher_form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
+          var form = event.target;
+          var formData = new FormData(form);
+
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              var messageDiv = document.getElementById("message_div");
+              if (data.status === "success") {
+                messageDiv.innerHTML =
+                  '<p style="color: green;">' + data.message + "</p>";
+              } else if (data.status === "error") {
+                messageDiv.innerHTML =
+                  '<p style="color: red;">' + data.message + "</p>";
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        });
       let currentContent = "";
 
       function toggleContent(url) {
