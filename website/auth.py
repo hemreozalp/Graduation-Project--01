@@ -1,5 +1,5 @@
 import mysql.connector
-from flask import Blueprint, request, redirect, url_for, render_template,jsonify, session, flash
+from flask import Blueprint, request, redirect, url_for, render_template, jsonify, session, flash
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -14,42 +14,35 @@ def get_db_connection():
     )
     return conn
 
-
 @auth.route('/login', methods=['POST'])
 def login():
-   
     email = request.form['email']
     password = request.form['password']
     
-    # Veritabanından e-posta ve şifre kontrolü
-    conn=get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM teachers WHERE email=%s AND password=%s", (email, password))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM teachers WHERE teacher_email=%s", (email,))
     teacher = cursor.fetchone()
 
-    if teacher:
-        # Giriş başarılıysa ana sayfaya yönlendir
+    if teacher and check_password_hash(teacher['teacher_password'], password):
+        session['teacher_id'] = teacher['teacher_id']
         return redirect(url_for('views.teacher_login'))
     else:
-        # Giriş başarısızsa hata mesajıyla birlikte login sayfasına yönlendir
-        return render_template('login.html', invalid_login=True, invalid_email=True, invalid_password=True)
-    
+        return render_template('login.html', invalid_login=True)
 
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        teacher_id=request.form['teacher_id']
+        teacher_id = request.form['teacher_id']
         teacher_name = request.form['teacher_name']
         teacher_surname = request.form['teacher_surname']
         email = request.form['email']
         password = request.form['password']
         
-        # Veritabanına ekleme
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
-        # Kullanıcının zaten var olup olmadığını kontrol et
-        cursor.execute("SELECT * FROM teachers WHERE email=%s", (email,))
+        cursor.execute("SELECT * FROM teachers WHERE teacher_email=%s", (email,))
         existing_teacher = cursor.fetchone()
         
         if existing_teacher:
@@ -58,7 +51,9 @@ def signup():
             conn.close()
             return redirect(url_for('views.signup'))
         
-        cursor.execute("INSERT INTO teachers (teacher_id,teacher_name,teacher_surname,email, password) VALUES (%s,%s,%s,%s, %s)", (teacher_id,teacher_name,teacher_surname,email, password))
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        cursor.execute("INSERT INTO teachers (teacher_id, teacher_name, teacher_surname, teacher_email, teacher_password) VALUES (%s, %s, %s, %s, %s)", 
+                       (teacher_id, teacher_name, teacher_surname, email, hashed_password))
         conn.commit()
         cursor.close()
         conn.close()
@@ -70,232 +65,227 @@ def signup():
 
 @auth.route('/add_teacher', methods=['POST'])
 def add_teacher():
-    if request.method == 'POST':
+    try:
         teacher_id = request.form['teacher_id']
         teacher_name = request.form['teacher_name']
         teacher_surname = request.form['teacher_surname']
         email = request.form['email']
         password = request.form['password']
-        
-        # Veritabanına ekleme
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
-        # Öğretmenin zaten var olup olmadığını kontrol et
-        cursor.execute("SELECT * FROM teachers WHERE teacher_id=%s OR email=%s", (teacher_id, email))
+        # Boş alan kontrolü
+        if not teacher_id or not teacher_name or not teacher_surname or not email or not password:
+            return jsonify({'success': False, 'message': 'All fields are required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM teachers WHERE teacher_id=%s OR teacher_email=%s", (teacher_id, email))
         existing_teacher = cursor.fetchone()
-        
+
         if existing_teacher:
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'message': 'Teacher already exists!'})
 
-        cursor.execute("INSERT INTO teachers (teacher_id, teacher_name, teacher_surname, email, password) VALUES (%s, %s, %s, %s, %s)", (teacher_id, teacher_name, teacher_surname, email, password))
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        cursor.execute("INSERT INTO teachers (teacher_id, teacher_name, teacher_surname, teacher_email, teacher_password) VALUES (%s, %s, %s, %s, %s)", 
+                       (teacher_id, teacher_name, teacher_surname, email, hashed_password))
         conn.commit()
         cursor.close()
         conn.close()
 
         return jsonify({'success': True, 'message': 'Teacher successfully added!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@auth.route('/remove_teacher', methods=['POST'])
+def remove_teacher():
+    try:
+        teacher_id = request.form['teacher_id']
+
+        # Boş alan kontrolü
+        if not teacher_id:
+            return jsonify({'success': False, 'message': 'Teacher ID is required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM teachers WHERE teacher_id=%s", (teacher_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Teacher successfully removed!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @auth.route('/add_course', methods=['POST'])
 def add_course():
-    if request.method == 'POST':
+    try:
         course_id = request.form['course_id']
         course_name = request.form['course_name']
         course_day = request.form['course_day']
-        lesson_start_time= request.form['lesson_start_time']
-        lesson_end_time= request.form['lesson_end_time']
+        lesson_start_time = request.form['lesson_start_time']
+        lesson_end_time = request.form['lesson_end_time']
         class_name = request.form['class_name']
-        
-        # Veritabanına ekleme
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
-        # Kursun zaten var olup olmadığını kontrol et
+        # Boş alan kontrolü
+        if not course_id or not course_name or not course_day or not lesson_start_time or not lesson_end_time or not class_name:
+            return jsonify({'success': False, 'message': 'All fields are required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
         cursor.execute("SELECT * FROM courses WHERE course_id=%s", (course_id,))
         existing_course = cursor.fetchone()
-        
+
         if existing_course:
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'message': 'Course already exists!'})
-    
-        cursor.execute("INSERT INTO courses (course_id, course_name, course_day, lesson_start_time, lesson_end_time, class_name) VALUES (%s, %s, %s, %s, %s, %s)", (course_id, course_name, course_day, lesson_start_time, lesson_end_time, class_name))
+
+        cursor.execute("INSERT INTO courses (course_id, course_name, course_day, attendance_start_time, attendance_end_time, class_name) VALUES (%s, %s, %s, %s, %s, %s)", 
+                       (course_id, course_name, course_day, lesson_start_time, lesson_end_time, class_name))
         conn.commit()
         cursor.close()
         conn.close()
-    
-    return jsonify({'success': True, 'message': 'Course successfully added!'})
-    
+
+        return jsonify({'success': True, 'message': 'Course successfully added!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@auth.route('/remove_course', methods=['POST'])
+def remove_course():
+    try:
+        course_id = request.form['course_id']
+        course_name = request.form['course_name']
+        course_day = request.form['course_day']
+
+        # Boş alan kontrolü
+        if not course_id or not course_name or not course_day:
+            return jsonify({'success': False, 'message': 'All fields are required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM courses WHERE course_id=%s AND course_name=%s AND course_day=%s", 
+                       (course_id, course_name, course_day))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Course successfully removed!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @auth.route('/add_student', methods=['POST'])
 def add_student():
-    if request.method == 'POST':
+    try:
         student_id = request.form['student_id']
         student_name = request.form['student_name']
         student_surname = request.form['student_surname']
-        
-        # Veritabanına ekleme
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
-        # Öğrencinin zaten var olup olmadığını kontrol et
+        # Boş alan kontrolü
+        if not student_id or not student_name or not student_surname:
+            return jsonify({'success': False, 'message': 'All fields are required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
         cursor.execute("SELECT * FROM students WHERE student_id=%s", (student_id,))
         existing_student = cursor.fetchone()
-        
-        if existing_student:
+
+        if (existing_student):
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'message': 'Student already exists!'})
 
-        cursor.execute("INSERT INTO students (student_id, student_name, student_surname) VALUES (%s, %s, %s)", (student_id, student_name, student_surname))
+        cursor.execute("INSERT INTO students (student_id, student_name, student_surname) VALUES (%s, %s, %s)", 
+                       (student_id, student_name, student_surname))
         conn.commit()
         cursor.close()
         conn.close()
 
         return jsonify({'success': True, 'message': 'Student successfully added!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
-@auth.route('/filter_attendances', methods=['POST'])
-def filter_attendances():
+@auth.route('/remove_student', methods=['POST'])
+def remove_student():
+    try:
+        student_id = request.form['student_id']
+
+        # Boş alan kontrolü
+        if not student_id:
+            return jsonify({'success': False, 'message': 'Student ID is required!'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM students WHERE student_id=%s", (student_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Student successfully removed!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@auth.route('/filter_students', methods=['POST'])
+def filter_students():
     course_id = request.form.get('course_id')
-    attandancedate = request.form.get('attandancedate')
+    course_day = request.form.get('course_day')
+    lesson_start_time = request.form.get('lesson_start_time')
+    class_name = request.form.get('class_name')
     
-    query = "SELECT * FROM attandance WHERE 1=1"
-    params = []
-
-    if course_id:
-        query += " AND courseid = %s"
-        params.append(course_id)
-    if attandancedate:
-        query += " AND DATE(attandancedate) = %s"
-        params.append(attandancedate)
+    query = """
+        SELECT s.student_id, s.student_name, s.student_surname, a.attendance
+        FROM students s
+        LEFT JOIN attendance a ON s.student_id = a.student_id
+        WHERE a.course_id = %s AND a.course_day = %s AND a.lesson_start_time = %s AND a.class_name = %s
+    """
+    params = [course_id, course_day, lesson_start_time, class_name]
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(query, params)
+    students = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('teacher_login.html', students=students)
+
+@auth.route('/toggle_attendance/<int:student_id>', methods=['POST'])
+def toggle_attendance(student_id):
+    data = request.get_json()
+    attendance = data.get('attendance')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE attendance SET attendance=%s WHERE student_id=%s", (attendance, student_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({'success': True})
+
+@auth.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('views.login'))
+
+@auth.route('/filter_attendances', methods=['POST'])
+def filter_attendances():
+    course_id = request.form['course_id']
+    attendance_date = request.form['attendance_date']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT a.course_id, a.student_id, DATE_FORMAT(a.attendance_date, '%%d-%%m-%%Y') as formatted_date
+        FROM attendance a
+        WHERE a.course_id = %s AND DATE(a.attendance_date) = %s
+    """
+    cursor.execute(query, (course_id, attendance_date))
     attendances = cursor.fetchall()
     cursor.close()
     conn.close()
-
-    if attendances:
-        return jsonify({'success': True, 'attendances': attendances})
-    else:
-        return jsonify({'success': False, 'message': 'No attendances found for the selected filters.'})
-
-@auth.route('/teacher_login')
-def get_students_info():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT student_name FROM students")
-    students = cursor.fetchall()
-    for i in students:
-        print(i.student_name)
-    cursor.close()
-    conn.close()
-    return render_template('teacher_login.html', students=students) 
-
-    """ @auth.route('/login', methods=['GET', 'POST'])
-def login():
-    invalid_email = False
-    invalid_password = False
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM teachers WHERE email=?", (email,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return render_template('login.html') """
-    """ if user:
-            if check_password_hash(user['password'], password):
-                session['user_id'] = user['id']
-                return redirect(url_for('views.teacher_login'))
-            else:
-                invalid_password = True
-        else:
-            invalid_email = True """
-
-    """ return render_template('login.html', invalid_email=invalid_email, invalid_password=invalid_password)
-
-    return render_template('login.html', invalid_email=invalid_email, invalid_password=invalid_password) """
-
-    """ def validate_password(password):
-    if not (8 <= len(password) <= 16):
-        return "Your password must be 8-16 characters, include at least one lowercase letter, one uppercase letter, and a number."
-    if not re.search(r"[A-Z]", password):
-        return "Your password must be 8-16 characters, include at least one lowercase letter, one uppercase letter, and a number."
-    if not re.search(r"[a-z]", password):
-        return "Your password must be 8-16 characters, include at least one lowercase letter, one uppercase letter, and a number."
-    if not re.search(r"[0-9]", password):
-        return "Your password must be 8-16 characters, include at least one lowercase letter, one uppercase letter, and a number."
-    return None """
-
-    """ @auth.route('/signup', methods=['GET', 'POST'])
-    def signup():
-    if request.method == 'POST':
-        # POST isteği ile gelen verileri işleme kodları
-        pass
-    else:
-        # GET isteği ile signup sayfasını render etme kodları
-        return render_template('signup.html')
-    name = request.form['name']
-    surname = request.form['surname']
-    email = request.form['email']
-    password = request.form['password']
-    confirmPassword = request.form['confirmPassword']
-
-    # Şifre validasyonu
-    if not email.endswith('@aydin.edu.tr'):
-        flash('Invalid email domain. Only @aydin.edu.tr emails are allowed.')
-        return redirect(url_for('auth.signup_page'))
-
-    password_error = validate_password(password)
-    if password_error:
-        flash(password_error)
-        return redirect(url_for('auth.signup_page'))
     
-    if password != confirmPassword:
-        flash('Passwords do not match.')
-        return redirect(url_for('auth.signup_page'))
-
-    conn = get_db_connection()
-    try:
-        # Kullanıcı var mı kontrol et
-        select_cursor = conn.cursor()
-        select_cursor.execute("SELECT * FROM users WHERE email=?", (email,))
-        existing_record = select_cursor.fetchone()
-        select_cursor.close()
-
-        if existing_record:
-            return 'User already exists!'
-        
-        # Yeni kullanıcı ekle
-        insert_cursor = conn.cursor()
-        hashed_password = generate_password_hash(password)
-        insert_cursor.execute(
-            "INSERT INTO users (name, surname, email, password) VALUES (%s, %s, %s, %s)",
-            (name, surname, email, hashed_password)
-        )
-        conn.commit()
-        insert_cursor.close()
-        
-    except sqlite3.Error as e:
-        return f"An error occurred: {e}"
-    finally:
-        conn.close() """
-
-    """     # INSERT işlemi için yeni bir cursor oluşturuyoruz
-    insert_cursor = conn.cursor()
-    
-    # INSERT sorgusunu çalıştırıyoruz
-    insert_cursor.execute("INSERT INTO teacher (name, surname, email, password, confirmPassword) VALUES (%s, %s, %s, %s, %s)", (name, surname, email, password, confirmPassword))
-    
-    # İşlemi tamamla ve bağlantıyı kapat
-    conn.commit()
-    conn.close()
-    
-    return 'Sign up successful!' """
-
-
+    return render_template('authorize_attendances.html', attendances=attendances)

@@ -58,7 +58,7 @@
         background-color: #ffcccc;
         padding: 0.5rem;
         border-radius: 5px;
-        margin-bottom: 10px; /* Added for spacing */
+        margin-bottom: 10px;
       }
     </style>
   </head>
@@ -69,7 +69,12 @@
       'error' %} {% if 'user already exists' in message.lower() %}
       <div id="userAlreadyExistError">{{ message }}</div>
       {% endif %} {% endif %} {% endfor %} {% endif %} {% endwith %}
-      <form id="signupForm" action="/auth/signup" method="POST" class="mt-4">
+      <form
+        id="signupForm"
+        action="{{ url_for('auth.signup') }}"
+        method="POST"
+        class="mt-4"
+      >
         <label for="teacher_name" class="block mb-2">Name:</label>
         <input
           type="text"
@@ -86,7 +91,7 @@
           class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
         />
 
-        <label for="teacher_id" class="block mb-2">Tecaher ID:</label>
+        <label for="teacher_id" class="block mb-2">Teacher ID:</label>
         <input
           type="text"
           id="teacher_id"

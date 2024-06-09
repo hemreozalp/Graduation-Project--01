@@ -49,7 +49,7 @@
     <div
       class="flex flex-row justify-between items-center custom-background p-6"
     >
-      <div class="">
+      <div>
         <div class="text-white text-2xl font-bold" data-key="welcome">
           ClassCheck
         </div>
@@ -59,7 +59,7 @@
         <button id="gear-button" class="mr-5">
           <img src="{{ url_for('static', filename='images/gear.png') }}" />
         </button>
-        <button>
+        <button id="logout-button">
           <img src="{{ url_for('static', filename='images/logout.png') }}" />
         </button>
       </div>
@@ -77,38 +77,42 @@
       >
         <div id="message_div"></div>
         <button
+          id="btn-teacher"
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
-          onclick="loadContent('/add_teacher')"
+          onclick="toggleContent('{{ url_for('views.add_teacher') }}')"
           data-key="addRemoveTeacher"
         >
-          Add Teacher
+          Add/Remove Teacher
         </button>
         <button
+          id="btn-student"
           class="button-bg text-white font-bold py-3 px-6 rounded-lg"
-          onclick="loadContent('/add_student')"
+          onclick="toggleContent('{{ url_for('views.add_student') }}')"
           data-key="addRemoveStudent"
         >
           Add/Remove Student
         </button>
         <button
+          id="btn-course"
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
-          onclick="loadContent('/add_course')"
+          onclick="toggleContent('{{ url_for('views.add_course') }}')"
           data-key="addRemoveClass"
         >
           Add/Remove Course
+        </button>
+        <button
+          id="btn-attendances"
+          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          onclick="toggleContent('{{ url_for('views.attendances') }}')"
+          data-key="attendances"
+        >
+          Attendances
         </button>
         <button
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
           data-key="classList"
         >
           Student/Teacher Class List
-        </button>
-        <button
-          class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
-          onclick="loadContent('/attendances')"
-          data-key="attendances"
-        >
-          Attendances
         </button>
         <button
           class="button-bg hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
@@ -125,14 +129,19 @@
     </div>
 
     <script>
-      function changeButtonColor(button) {
-        button.classList.toggle("button-active");
-      }
+      let currentContent = "";
 
-      function loadContent(url) {
-        $.get(url, function (data) {
-          $("#content").html(data);
-        });
+      function toggleContent(url) {
+        if (currentContent === url) {
+          $("#content").empty();
+          currentContent = "";
+        } else {
+          $("#content").empty();
+          $.get(url, function (data) {
+            $("#content").html(data);
+          });
+          currentContent = url;
+        }
       }
 
       function toggleLanguageSelector() {
@@ -178,34 +187,11 @@
           const selectedLanguage = $(this).val();
           changeLanguage(selectedLanguage);
         });
-      });
 
-      document
-        .getElementById("add_teacher_form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
-          var form = event.target;
-          var formData = new FormData(form);
-
-          fetch(form.action, {
-            method: "POST",
-            body: formData,
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              var messageDiv = document.getElementById("message_div");
-              if (data.status === "success") {
-                messageDiv.innerHTML =
-                  '<p style="color: green;">' + data.message + "</p>";
-              } else if (data.status === "error") {
-                messageDiv.innerHTML =
-                  '<p style="color: red;">' + data.message + "</p>";
-              }
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-            });
+        $("#logout-button").click(function () {
+          window.location.href = "{{ url_for('auth.logout') }}";
         });
+      });
     </script>
   </body>
 </html>

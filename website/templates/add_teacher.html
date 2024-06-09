@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Add Teacher</title>
+    <title>Add/Remove Teacher</title>
     <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
@@ -19,7 +19,7 @@
         background-color: #3e00b3;
       }
       .modal {
-        display: none; /* Gizli olacak */
+        display: none;
         position: fixed;
         z-index: 1;
         left: 0;
@@ -67,9 +67,19 @@
         padding: 10px;
         border-radius: 5px;
       }
+      .password-container {
+        position: relative;
+      }
+      .toggle-password {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        cursor: pointer;
+      }
     </style>
   </head>
-  <body class="">
+  <body>
     <div class="flex flex-col justify-stretch h-full w-full my-6 md:mb-0 gap-6">
       <form
         id="add_teacher_form"
@@ -112,21 +122,47 @@
         />
 
         <label for="password" class="block mb-2">Password:</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
-          placeholder="••••••••"
-        />
+        <div class="password-container">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
+            placeholder="••••••••"
+          />
+          <span class="toggle-password" onclick="togglePassword()">👁️</span>
+        </div>
 
         <button
-          id="changeContentButton"
+          id="add_teacher_button"
           class="button-bg text-white font-bold py-3 px-6 mt-4 rounded-lg"
         >
           Add Teacher
         </button>
       </form>
+
+      <form
+        id="remove_teacher_form"
+        action="{{ url_for('auth.remove_teacher') }}"
+        method="POST"
+        class="mt-4"
+      >
+        <label for="teacher_id_remove" class="block mb-2">Teacher ID:</label>
+        <input
+          type="text"
+          id="teacher_id_remove"
+          name="teacher_id"
+          class="w-full p-2 border border-gray-300 rounded mb-2 input-field"
+        />
+
+        <button
+          id="remove_teacher_button"
+          class="button-bg text-white font-bold py-3 px-6 mt-4 rounded-lg"
+        >
+          Remove Teacher
+        </button>
+      </form>
+
       <div id="myModal" class="modal">
         <div class="modal-content">
           <span class="close">&times;</span>
@@ -135,6 +171,18 @@
       </div>
     </div>
     <script>
+      function togglePassword() {
+        var passwordField = document.getElementById("password");
+        var passwordToggle = document.querySelector(".toggle-password");
+        if (passwordField.type === "password") {
+          passwordField.type = "text";
+          passwordToggle.textContent = "👁️";
+        } else {
+          passwordField.type = "password";
+          passwordToggle.textContent = "👁️";
+        }
+      }
+
       document
         .getElementById("add_teacher_form")
         .addEventListener("submit", function (event) {
@@ -168,7 +216,39 @@
             });
         });
 
-      // Modal kapatma işlevi
+      document
+        .getElementById("remove_teacher_form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
+          var form = event.target;
+          var formData = new FormData(form);
+
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              var modal = document.getElementById("myModal");
+              var modalMessage = document.getElementById("modal-message");
+              if (data.success) {
+                modalMessage.textContent = data.message;
+                modalMessage.className = "message-success";
+              } else {
+                modalMessage.textContent = data.message;
+                modalMessage.className = "message-error";
+              }
+              modal.style.display = "block";
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              var modal = document.getElementById("myModal");
+              var modalMessage = document.getElementById("modal-message");
+              modalMessage.textContent = "An unexpected error occurred.";
+              modal.style.display = "block";
+            });
+        });
+
       document.getElementsByClassName("close")[0].onclick = function () {
         var modal = document.getElementById("myModal");
         modal.style.display = "none";
