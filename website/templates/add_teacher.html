@@ -130,7 +130,33 @@
             class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
             placeholder="••••••••"
           />
-          <span class="toggle-password" onclick="togglePassword()">👁️</span>
+          <span class="toggle-password" onclick="togglePassword()">
+            <img
+              src="{{ url_for('static', filename='images/show_password.png') }}"
+              alt="Show Password"
+              id="toggle-password-icon"
+            />
+          </span>
+        </div>
+
+        <label for="confirm_password" class="block mb-2"
+          >Confirm Password:</label
+        >
+        <div class="password-container">
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            class="w-full p-2 border border-gray-300 rounded mb-4 input-field"
+            placeholder="••••••••"
+          />
+          <span class="toggle-password" onclick="toggleConfirmPassword()">
+            <img
+              src="{{ url_for('static', filename='images/show_password.png') }}"
+              alt="Show Password"
+              id="toggle-confirm-password-icon"
+            />
+          </span>
         </div>
 
         <button
@@ -173,13 +199,31 @@
     <script>
       function togglePassword() {
         var passwordField = document.getElementById("password");
-        var passwordToggle = document.querySelector(".toggle-password");
+        var passwordToggle = document.getElementById("toggle-password-icon");
         if (passwordField.type === "password") {
           passwordField.type = "text";
-          passwordToggle.textContent = "👁️";
+          passwordToggle.src =
+            "{{ url_for('static', filename='images/hide_password.png') }}";
         } else {
           passwordField.type = "password";
-          passwordToggle.textContent = "👁️";
+          passwordToggle.src =
+            "{{ url_for('static', filename='images/show_password.png') }}";
+        }
+      }
+
+      function toggleConfirmPassword() {
+        var confirmPasswordField = document.getElementById("confirm_password");
+        var confirmPasswordToggle = document.getElementById(
+          "toggle-confirm-password-icon"
+        );
+        if (confirmPasswordField.type === "password") {
+          confirmPasswordField.type = "text";
+          confirmPasswordToggle.src =
+            "{{ url_for('static', filename='images/hide_password.png') }}";
+        } else {
+          confirmPasswordField.type = "password";
+          confirmPasswordToggle.src =
+            "{{ url_for('static', filename='images/show_password.png') }}";
         }
       }
 
@@ -189,6 +233,15 @@
           event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
           var form = event.target;
           var formData = new FormData(form);
+
+          // Şifre ve şifre doğrulama kontrolü
+          var password = document.getElementById("password").value;
+          var confirmPassword =
+            document.getElementById("confirm_password").value;
+          if (password !== confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+          }
 
           fetch(form.action, {
             method: "POST",

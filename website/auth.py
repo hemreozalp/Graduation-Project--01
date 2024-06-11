@@ -29,7 +29,7 @@ def login():
         session['teacher_id'] = teacher['teacher_id']
         return redirect(url_for('views.teacher_login'))
     
-    # Yetkili kullanıcı kontrolü (Düz metin parola kontrolü)
+    # Yetkili kullanıcı kontrolü
     cursor.execute("SELECT * FROM authorized WHERE authorized_email=%s", (email,))
     authorized_user = cursor.fetchone()
     
@@ -203,7 +203,7 @@ def add_student():
         cursor.execute("SELECT * FROM students WHERE student_id=%s", (student_id,))
         existing_student = cursor.fetchone()
 
-        if (existing_student):
+        if existing_student:
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'message': 'Student already exists!'})
@@ -244,15 +244,16 @@ def filter_students():
     course_day = request.form.get('course_day')
     lesson_start_time = request.form.get('lesson_start_time')
     class_name = request.form.get('class_name')
-    
+
     query = """
-        SELECT s.student_id, s.student_name, s.student_surname, a.attendance
+        SELECT s.student_id, s.student_name, s.student_surname, a.attendance_id
         FROM students s
         LEFT JOIN attendance a ON s.student_id = a.student_id
-        WHERE a.course_id = %s AND a.course_day = %s AND a.lesson_start_time = %s AND a.class_name = %s
+        LEFT JOIN courses c ON a.course_id = c.course_id
+        WHERE c.course_id = %s AND c.course_day = %s AND c.attendance_start_time = %s AND c.class_name = %s
     """
     params = [course_id, course_day, lesson_start_time, class_name]
-    
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(query, params)
@@ -262,14 +263,11 @@ def filter_students():
 
     return render_template('teacher_login.html', students=students)
 
-@auth.route('/toggle_attendance/<int:student_id>', methods=['POST'])
-def toggle_attendance(student_id):
-    data = request.get_json()
-    attendance = data.get('attendance')
-
+@auth.route('/delete_attendance/<student_id>', methods=['POST'])
+def delete_attendance(student_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE attendance SET attendance=%s WHERE student_id=%s", (attendance, student_id))
+    cursor.execute("DELETE FROM attendance WHERE student_id = %s", (student_id,))
     conn.commit()
     cursor.close()
     conn.close()
@@ -280,22 +278,3 @@ def toggle_attendance(student_id):
 def logout():
     session.clear()
     return redirect(url_for('views.login'))
-
-@auth.route('/filter_attendances', methods=['POST'])
-def filter_attendances():
-    course_id = request.form['course_id']
-    attendance_date = request.form['attendance_date']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    query = """
-        SELECT a.course_id, a.student_id, DATE_FORMAT(a.attendance_date, '%%d-%%m-%%Y') as formatted_date
-        FROM attendance a
-        WHERE a.course_id = %s AND DATE(a.attendance_date) = %s
-    """
-    cursor.execute(query, (course_id, attendance_date))
-    attendances = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
-    return render_template('authorize_attendances.html', attendances=attendances)
